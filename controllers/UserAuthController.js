@@ -8,26 +8,45 @@ import cloudinary from "../cloudinary/cloudinary.js";
 import { log } from "console";
 import path from "path";
 import uploadprofile from "../middleware/MuterUser.js";
+import { sendMailActivateUser } from "../utils/sendMail.js";
+import { v4 as uuidv4 } from "uuid";
 dotenv.config();
 
 export const registe = async (req, res, next) => {
-  // const {email , username , password , fullname} = req.body
-  const email = req.body.email;
-  const fullname = req.body.fullname;
-  const username = req.body.username;
-  const passwords = req.body.password;
-
+  const { email, username, password, fullname } = req.body;
+  const userId = uuidv4();
   try {
     const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync(passwords, salt);
-    const newUser = new User({
+    const hash = bcrypt.hashSync(password, salt);
+    const newUser = {
       email: email,
       fullname: fullname,
       username: username,
       password: hash,
+      userId: userId,
+    };
+    sendMailActivateUser(newUser);
+    res.status(200).json({message:"กำลังตรวจสอบข้อมูลของคุณโปรดรอสักคู่ !"});
+  } catch (err) {
+    res.status(404).json({ msg: "บันทึกข้อมูลไม่สำเร็จ" });
+    next(err);
+  }
+};
+export const activateUser = async (req, res, next) => {
+  const tokenactivate = req.query.token;
+  try {
+    const jby = jwt.verify(tokenactivate, process.env.JWT);
+    const salt = bcrypt.genSaltSync(10);
+    const hash = bcrypt.hashSync(jby.password, salt);
+    const newUser = new User({
+      email: jby.email,
+      fullname: jby.fullname,
+      username: jby.username,
+      password: hash,
+      userId: jby.userId,
     });
-    const saveUser = await newUser.save();
-    res.status(200).json(saveUser);
+    await newUser.save();
+    res.status(200).json({ message: "Register successfully !" });
   } catch (err) {
     res.status(404).json({ msg: "บันทึกข้อมูลไม่สำเร็จ" });
     next(err);
@@ -245,10 +264,10 @@ export const rePassword = async (req, res, next) => {
       user.password
     );
     if (!isPasswordCorrect) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Old password is incorrect!" });
-      }
+      return res
+        .status(400)
+        .json({ success: false, message: "Old password is incorrect!" });
+    }
     // const isPasswordMatched = await user.comparePassword(req.body.oldPassword);
 
     // if (!isPasswordMatched) {
@@ -265,7 +284,7 @@ export const rePassword = async (req, res, next) => {
     }
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(req.body.newPassword, salt);
-    user.password = hash ;
+    user.password = hash;
     await user.save();
     res.status(200).json({
       success: true,

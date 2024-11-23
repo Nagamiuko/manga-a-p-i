@@ -3,6 +3,10 @@ const {Schema} = mongoose
 
 const userSchemas = new mongoose.Schema(
    {
+      userId:{
+         type:String,
+         required:true
+      },
       email: {
          type:String,
          unique: true 

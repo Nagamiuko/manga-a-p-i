@@ -1,6 +1,7 @@
 import express from "express";
 import {verifyToken, verifyAdmin , verifyUser } from "../utils/verifyToken.js";
 import {
+  activateUser,
   getUser,
   login,
   loginLine,
@@ -14,6 +15,7 @@ import uploadprofile from "../middleware/MuterUser.js";
 const router = express.Router();
 
 router.post("/register", registe);
+router.get("/activateUser", activateUser);
 router.post("/login", login);
 router.post("/login-line", loginLine);
 router.put("/user-updata-password/:id", rePassword);
