@@ -7,7 +7,7 @@ import {
   deleteChapter,
 } from "../controllers/ChapterController.js";
 
-import upload from "../middleware/Muter.js";
+import upload from "../plugins/Muter.js";
 const router = express.Router();
 // router.post("/create-books-chapter/:bookid",createChapter);
 router.post("/create-books-chapter/:bookid",upload.array("imagechapter"),createChapter);

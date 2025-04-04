@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  // id          String  @id @default(auto()) @map("_id")
+  id          String       @id @default(uuid())
+  email       String       @unique
+  fullname    String
+  namedisplay String?
+  username    String
+  password    String       @map("password") // Prisma ไม่รองรับ select:false แต่คุณสามารถใช้ DTO ซ่อน password ใน API ได้
+  credit      Int          @default(0)
+  total_money Int          @default(0)
+  avatar      String       @default("")
+  sex         String?
+  isAdmin     String       @default("user_role")
+  Book        Books[]      @relation("BookList")
+  Address     Address[]
+  followShop  FollowShop[]
+  watchlist   Watchlist[]
+  favorite    Favorite[]
+  cart        Cart[]
+}
+
+model Books {
+  id                     String      @id @default(uuid())
+  title                  String?
+  a_name                 String?
+  t_name                 String?
+  tagline                String?
+  synopsis               String?
+  coverImageId           String?     @unique
+  price_of_free          String      @default("0")
+  free                   String      @default("ฟรี")
+  category_main          String?
+  category               String?
+  rating                 String?
+  typebook               String?
+  typebook_singer_a_muti String?
+  typebookAndnovel       String?
+  bookPdfId              String?     @unique
+  bookPdf                BookPDF?
+  Chapter                Chapter[]   @relation("ChapterBook")
+  shopId                 String
+  mangauserId            String
+  User                   User?       @relation(fields: [mangauserId], references: [id], name: "BookList")
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+  coverImage             String?
+  watchlist              Watchlist[]
+  favorite               Favorite[]
+  cartItem               CartItem[]
+}
+
+model BookPDF {
+  id            String  @id @default(uuid())
+  book_pdf_full String?
+  book_pdf_try  String?
+  book          Books?  @relation(fields: [id], references: [bookPdfId])
+}
+
+// model MangaUser {
+//   id    String @id @default(uuid())
+//   books Book[]
+// }
+
+model BookCategory {
+  id                     String   @id @default(uuid())
+  category_main          String?
+  category               String?
+  rating                 String?
+  typebook               String?
+  typebook_singer_a_muti String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model Chapter {
+  id         String   @id @default(uuid())
+  title_name String?
+  contents   String?
+  bookId     String
+  images     Image[]  @relation("ChapterImages")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  Book       Books    @relation(fields: [bookId], references: [id], name: "ChapterBook")
+}
+
+model Image {
+  id          String   @id @default(uuid())
+  public_id   String   @unique
+  imageNumber String   @unique
+  url         String
+  chapterId   String?
+  chapter     Chapter? @relation(fields: [chapterId], references: [id], name: "ChapterImages")
+}
+
+model Order {
+  id              String       @id @default(uuid())
+  cart            Json
+  mailshop        String[]
+  shippingAddress Json
+  user            Json
+  totalPrice      Float
+  status          String       @default("Processing")
+  paymentInfo     PaymentInfo?
+  paidAt          DateTime     @default(now())
+  deliveredAt     DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model PaymentInfo {
+  id        String  @id @default(uuid())
+  orderId   String  @unique
+  order     Order   @relation(fields: [orderId], references: [id])
+  paymentId String?
+  status    String?
+  type      String?
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  nameAddress String?
+  tel         String?
+  address     String?
+  district    String?
+  dists       String?
+  province    String?
+  postalCode  String?
+  typeAddress String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String @id @default(uuid())
+  cartId    String
+  cart      Cart   @relation(fields: [cartId], references: [id])
+  productId String
+  product   Books  @relation(fields: [productId], references: [id])
+  quantity  Int
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Books    @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Books    @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model FollowShop {
+  id        String   @id @default(uuid())
+  shopId    String
+  shop      User     @relation(fields: [shopId], references: [id])
+  createdAt DateTime @default(now())
+}

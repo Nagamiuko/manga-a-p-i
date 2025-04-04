@@ -3,33 +3,43 @@ import bcrypt from "bcryptjs";
 import { createError } from "../utils/error.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import fs from "fs";
-import cloudinary from "../cloudinary/cloudinary.js";
-import { log } from "console";
-import path from "path";
-import uploadprofile from "../middleware/MuterUser.js";
+import { prisma } from "../plugins/prismaClient.js";
+import { sendToken } from "../plugins/sendToken.js";
+import {
+  clients3,
+  deleteParams,
+  uploadParams,
+} from "../plugins/cloudObject.js";
+import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 dotenv.config();
 
 export const registe = async (req, res, next) => {
-  // const {email , username , password , fullname} = req.body
-  const email = req.body.email;
-  const fullname = req.body.fullname;
-  const username = req.body.username;
-  const passwords = req.body.password;
-
+  const { email, username, password, fullname } = req.body;
   try {
     const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync(passwords, salt);
-    const newUser = new User({
-      email: email,
-      fullname: fullname,
-      username: username,
-      password: hash,
+    const hash = bcrypt.hashSync(password, salt);
+    const reCheck = await prisma.user.findFirst({
+      where: {
+        username: username,
+        email: email,
+      },
     });
-    const saveUser = await newUser.save();
-    res.status(200).json(saveUser);
+    if (reCheck)
+      return res.status(401).json({ message: "This user already exists." });
+
+    const newUser = await prisma.user.create({
+      data: {
+        email: email,
+        fullname: fullname,
+        username: username,
+        password: hash,
+      },
+    });
+    res
+      .status(200)
+      .json({ message: "User create successfully !", data: newUser });
   } catch (err) {
-    res.status(404).json({ msg: "บันทึกข้อมูลไม่สำเร็จ" });
+    res.status(404).json({ msg: "Create not Failed !!" });
     next(err);
   }
 };
@@ -38,116 +48,111 @@ export const login = async (req, res, next) => {
   const { username, password } = req.body;
   console.log(username, password);
   try {
-    const user = await User.findOne({ username: username }).select("+password");
+    const user = await prisma.user.findFirst({
+      where: {
+        username: username,
+      },
+    });
     if (!user) return next(createError(404, "User not found!"));
 
-    const isPasswordCorrect = await bcrypt.compare(
-      req.body.password,
-      user.password
-    );
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect)
       return next(createError(400, "Wromg password or username!"));
 
     const token = jwt.sign(
-      { id: user._id, isAdmin: user.isAdmin },
+      { id: user.id, isAdmin: user.isAdmin },
       process.env.JWT
     );
-
-    const { password, isAdmin, ...otherDetails } = user._doc;
-    res
-      .cookie("access_token", token, {
-        httpOnly: true,
-      })
-      .status(200)
-      .json({ details: { ...otherDetails }, isAdmin });
-    next("Login Successfully!");
+    sendToken(token, user, 200, res);
   } catch (err) {
-    next(err);
+    res.status(404).json({ message: "Login not Failed !!" });
     console.log(err);
   }
 };
 
 export const updateUser = async (req, res, next) => {
-  // const fullname = req.body.fullname
-  // const sex = req.body.sexs
   const { fullname, displayName, sex, email } = req.body;
-  let user = req.params.userid;
-  const image = req.file ? req.file.filename : null;
-  console.log("ShowID:", user);
-  try {
-    const curFile = await User.findById(user);
-    if (image) {
-      const file_id = curFile.avatar.public_id;
-      if (file_id) {
-        await cloudinary.uploader.destroy(file_id);
-      }
+  const { userId } = req.params;
 
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        public_id: image,
-        resource_type: "auto",
-        folder: "avatar",
-      });
-      // const data = User.findOne({_id:user})
-      // if(data){
-      //   // const salt = bcrypt.genSaltSync(10)
-      //   // const hash = bcrypt.hashSync(passwords, salt)
-      User.findById(user)
-        .then(function (models) {
-          console.log(models);
-          fs.unlinkSync(`public/profile/${models.avatar.image_name}`);
-        })
-        .catch(function (err) {
-          console.log(err);
-        });
-      const updateUsers = await User.findByIdAndUpdate(
-        user,
-        {
-          $set: {
-            fullname: fullname,
-            namedisplay: displayName,
-            email: email,
-            avatar: {
-              public_id: result.public_id,
-              avatar_url: result.secure_url,
-              image_name: image,
-            },
-            sex: sex,
-          },
-        },
-        { new: true }
-      );
-      console.log(updateUsers?.avatar?.image_name);
-      res.status(200).json({ details: updateUsers });
-      // res.send({succeess:true ,msg:"Updata User Successfully !"})
-    }
-    if (!image) {
-      // const data = User.findOne({_id:user})
-      // if(data){
-      // const salt = bcrypt.genSaltSync(10)
-      // const hash = bcrypt.hashSync(passwords, salt)
-      User.findByIdAndUpdate(user)
-        .then(function (models) {
-          console.log(models);
-          fs.unlinkSync(`public/profile/${models?.avatar?.image_name}`);
-        })
-        .catch(function (err) {
-          console.log(err);
-        });
-      const updateUsers = await User.findByIdAndUpdate(
-        user,
-        {
-          $set: {
-            fullname: fullname,
-            namedisplay: displayName,
-            email: email,
-            sex: sex,
-          },
-        },
-        { new: true }
-      );
-      res.status(200).json({ details: updateUsers });
-    }
+  console.log({ displayName, fullname });
+
+  try {
+    const reCheck = await prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+    if (!reCheck)
+      return res.status(401).json({ message: "This user not found !!" });
+    const update = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullname: fullname,
+        namedisplay: displayName,
+        email: email,
+        sex: sex,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        namedisplay: true,
+        fullname: true,
+        credit: true,
+        total_money: true,
+        avatar: true,
+        sex: true,
+        Book: true,
+        Address: true,
+      },
+    });
+    res.status(200).json({ data: update, message: "Update successfully !!" });
   } catch (err) {
+    next(err);
+  }
+};
+export const updateUserImage = async (req, res, next) => {
+  const { userId } = req.params;
+  const ImageProfile = req.file;
+  try {
+    const reCheck = await prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+    if (!reCheck)
+      return res.status(401).json({ message: "This user not found !!" });
+    if (reCheck.avatar) {
+      const oldImageKey = reCheck.avatar.split("/").pop();
+      const Deletes = deleteParams(oldImageKey, "profile");
+      const command = new DeleteObjectCommand(Deletes);
+      await clients3.send(command);
+    }
+    const i = uploadParams(ImageProfile, "profile");
+    const save = new PutObjectCommand(i);
+    await clients3.send(save);
+    const url = `https://service-bb.overletworld.online/${i.Key}`;
+    const updata = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatar: url,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        namedisplay: true,
+        fullname: true,
+        credit: true,
+        total_money: true,
+        avatar: true,
+        sex: true,
+        Book: true,
+      },
+    });
+    res.status(200).json({ user: updata, message: "Update successfully !!" });
+  } catch (err) {
+    console.log(err);
     next(err);
   }
 };
@@ -221,8 +226,29 @@ export const userUpdateCredit = async (req, res, next) => {
   }
 };
 export const getUser = async (req, res, next) => {
+  const { userId } = req.query;
+  console.log(userId);
+
   try {
-    const user = await User.findById(req.params.id);
+    const user = await prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        namedisplay: true,
+        fullname: true,
+        credit: true,
+        total_money: true,
+        avatar: true,
+        sex: true,
+        Book: true,
+        Address: true,
+        watchlist: true,
+      },
+    });
 
     if (!user) {
       return next(new ErrorHandler("User doesn't exists", 400));
@@ -233,6 +259,7 @@ export const getUser = async (req, res, next) => {
       user,
     });
   } catch (error) {
+    console.log(error);
     return next(new ErrorHandler(error.message, 500));
   }
 };
@@ -245,10 +272,10 @@ export const rePassword = async (req, res, next) => {
       user.password
     );
     if (!isPasswordCorrect) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Old password is incorrect!" });
-      }
+      return res
+        .status(400)
+        .json({ success: false, message: "Old password is incorrect!" });
+    }
     // const isPasswordMatched = await user.comparePassword(req.body.oldPassword);
 
     // if (!isPasswordMatched) {
@@ -265,7 +292,7 @@ export const rePassword = async (req, res, next) => {
     }
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(req.body.newPassword, salt);
-    user.password = hash ;
+    user.password = hash;
     await user.save();
     res.status(200).json({
       success: true,
