@@ -16,13 +16,6 @@ import BookAdmin from "./router/BookAdmin.js";
 import StripeApiKey from "./router/PaymentRouter.js";
 import OrderRouter from "./router/OrderProduct.js";
 import Withdram from "./router/withdramRouter.js";
-<<<<<<< HEAD
-import mongo from "./config/db.js";
-
-const app = express();
-app.use(express.json());
-app.use(cors());
-=======
 import mongoose from "mongoose";
 const app = express();
 app.use(express.json());
@@ -36,30 +29,10 @@ app.use(
     credentials: true,
   })
 );
->>>>>>> main
 app.use(cookieParser());
 
 app.use("/public", express.static("public"));
 
-<<<<<<< HEAD
-app.get("/", async (req, res) => {
-  res.status(201).json({ message: "message success" });
-});
-
-app.use("/api/auth", UserAuthRouter);
-app.use("/registration", UserAuthRouter);
-app.use("/api/books", BookCreateRouter);
-app.use("/api/books/chapter", BookCreateChapter);
-app.use("/api/books", BookChapterimage);
-app.use("/api/address", ADDAdress);
-app.use("/api/comment/book", ADDCommtent);
-app.use("/api/users", userall);
-app.use("/api", BookAdmin);
-app.use("/api", StripeApiKey);
-app.use("/api", OrderRouter);
-app.use("/api", Withdram);
-
-=======
 mongoose.connect(process.env.MONGOBD_API, { useNewUrlParser: true });
 mongoose.connection
   .once("open", () => {
@@ -85,7 +58,6 @@ app.use("/api", StripeApiKey);
 app.use("/api", OrderRouter);
 app.use("/api", Withdram);
 // app.use('/api/books/chapter',BookCreateChapter)
->>>>>>> main
 app.use((err, req, res, next) => {
   const errorStatus = err.status || 500;
   const errorMessage = err.message || "Something went wrong!";
@@ -96,17 +68,6 @@ app.use((err, req, res, next) => {
     stack: err.stack,
   });
 });
-<<<<<<< HEAD
-
-mongo()
-  .then(() => {
-    app.listen(process.env.PORT, () => {
-      console.log(`http://localhost:${process.env.PORT}`);
-    });
-  })
-  .catch((error) => console.log(error));
-=======
 app.listen(process.env.PORT, () => {
   console.log(`http://localhost:${process.env.PORT}`);
 });
->>>>>>> main

@@ -3,7 +3,6 @@ import bcrypt from "bcryptjs";
 import { createError } from "../utils/error.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-<<<<<<< HEAD
 import fs from "fs";
 import cloudinary from "../cloudinary/cloudinary.js";
 import { log } from "console";
@@ -11,21 +10,10 @@ import path from "path";
 import uploadprofile from "../middleware/MuterUser.js";
 import { sendMailActivateUser } from "../utils/sendMail.js";
 import { v4 as uuidv4 } from "uuid";
-=======
-import { prisma } from "../plugins/prismaClient.js";
-import { sendToken } from "../plugins/sendToken.js";
-import {
-  clients3,
-  deleteParams,
-  uploadParams,
-} from "../plugins/cloudObject.js";
-import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
->>>>>>> main
 dotenv.config();
 
 export const registe = async (req, res, next) => {
   const { email, username, password, fullname } = req.body;
-<<<<<<< HEAD
   const userId = uuidv4();
   try {
     const salt = bcrypt.genSaltSync(10);
@@ -59,31 +47,6 @@ export const activateUser = async (req, res, next) => {
     });
     await newUser.save();
     res.status(200).json({ message: "Register successfully !" });
-=======
-  try {
-    const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync(password, salt);
-    const reCheck = await prisma.user.findFirst({
-      where: {
-        username: username,
-        email: email,
-      },
-    });
-    if (reCheck)
-      return res.status(401).json({ message: "This user already exists." });
-
-    const newUser = await prisma.user.create({
-      data: {
-        email: email,
-        fullname: fullname,
-        username: username,
-        password: hash,
-      },
-    });
-    res
-      .status(200)
-      .json({ message: "User create successfully !", data: newUser });
->>>>>>> main
   } catch (err) {
     res.status(404).json({ msg: "Create not Failed !!" });
     next(err);
