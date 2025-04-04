@@ -8,10 +8,11 @@ import {
   registe,
   rePassword,
   updateUser,
+  updateUserImage,
   UserDelete,
   userUpdateCredit,
 } from "../controllers/UserAuthController.js";
-import uploadprofile from "../middleware/MuterUser.js";
+import upload from "../plugins/Muter.js";
 const router = express.Router();
 
 router.post("/register", registe);
@@ -21,8 +22,9 @@ router.post("/login-line", loginLine);
 router.put("/user-updata-password/:id", rePassword);
 router.delete("/user/delete/:userid", UserDelete);
 router.put("/user/update-credit/:id", userUpdateCredit);
-router.get("/user/:id", getUser);
-router.put("/updata/:userid",uploadprofile.single("image"), updateUser);
+router.get("/user", getUser);
+router.put("/updata/:userId", updateUser);
+router.put("/updata/image/:userId",upload.single("image"), updateUserImage);
 
 
 export default router;

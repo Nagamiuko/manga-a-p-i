@@ -1,7 +1,6 @@
 import express from "express";
 import { getImageChapter ,DeleteImage , ImageChapterOne} from "../controllers/ImageChapterBookController.js";
 
-import upload from "../middleware/Muter.js";
 const router = express.Router();
 // router.post("/create-books-chapter/:bookid",upload.array("imagechapter"),createChapter );
 // router.get("/chapter-all-book/:bookid",getChapterBookAll)
