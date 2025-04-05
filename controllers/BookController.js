@@ -377,6 +377,7 @@ export const addWishBookToMe = async (req, res, next) => {
   try {
     const reCheck = await prisma.watchlist.findFirst({
       where: {
+        userId: req.params.userid,
         productId: req.params.bookid,
       },
     });
@@ -402,6 +403,7 @@ export const removeWishBookToMe = async (req, res, next) => {
         userId: req.params.userid,
       },
     });
+
     if (!reCheck)
       return res.status(400).json({ message: "Watchlist item not found!" });
     await prisma.watchlist.deleteMany({

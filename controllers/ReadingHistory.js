@@ -1,5 +1,5 @@
 import ReadingHistrory from "../models/ReadingHistrory.js";
-
+import { prisma } from "../plugins/prismaClient.js";
 export const CommentChapterHistory = async (req, res) => {
   const { textcomment } = req.body;
   const userID = req.params.userid;
@@ -22,13 +22,14 @@ export const CommentBookHistory = async (req, res) => {
   const userID = req.params.userid;
   const bookID = req.params.bookid;
   try {
-    const saveComment = new ReadingHistrory({
-      textreview: textcomment,
-      books: bookID,
-      mangauser: userID,
+    await prisma.review.create({
+      data: {
+        textreview: textcomment,
+        booksId: bookID,
+        userId: userID,
+      },
     });
-    const saveComments = await saveComment.save();
-    res.status(200).json(saveComments);
+    res.status(200).json({ message: "comment successfully !" });
   } catch (err) {
     res.status(404).json("Not Falie");
     console.log(err);
@@ -37,12 +38,22 @@ export const CommentBookHistory = async (req, res) => {
 export const getCommentBook = async (req, res) => {
   const bookID = req.params.bookid;
   try {
-   //  const getmentBook = await ReadingHistrory.find({
-   //    mangauser: userID,
-   //    books: bookID,
-   //  }).populate('mangauser');
-    const getmentBook = await ReadingHistrory.find({ books: bookID}).populate('mangauser');
-    res.status(200).json(getmentBook);
+    const commentBook = await prisma.review.findMany({
+      where: { booksId: bookID },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullname: true,
+            namedisplay: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+    res
+      .status(200)
+      .json({ message: "read full comment successfully", data: commentBook });
   } catch (err) {
     res.status(404).json("Not Falie");
     console.log(err);

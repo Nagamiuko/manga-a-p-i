@@ -26,6 +26,7 @@ model User {
   watchlist   Watchlist[]
   favorite    Favorite[]
   cart        Cart[]
+  Review      Review[]
 }
 
 model Books {
@@ -56,6 +57,7 @@ model Books {
   watchlist              Watchlist[]
   favorite               Favorite[]
   cartItem               CartItem[]
+  Review                 Review[]
 }
 
 model BookPDF {
@@ -89,13 +91,14 @@ model Chapter {
   images     Image[]  @relation("ChapterImages")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  Book       Books    @relation(fields: [bookId], references: [id], name: "ChapterBook")
+  books      Books?   @relation(fields: [bookId], references: [id], name: "ChapterBook")
+  Review     Review[]
 }
 
 model Image {
   id          String   @id @default(uuid())
   public_id   String   @unique
-  imageNumber String   @unique
+  imageNumber Int
   url         String
   chapterId   String?
   chapter     Chapter? @relation(fields: [chapterId], references: [id], name: "ChapterImages")
@@ -175,6 +178,8 @@ model Watchlist {
   productId String
   product   Books    @relation(fields: [productId], references: [id])
   createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
 }
 
 model FollowShop {
@@ -182,4 +187,18 @@ model FollowShop {
   shopId    String
   shop      User     @relation(fields: [shopId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model Review {
+  id            String   @id @default(uuid())
+  textreview    String?
+  views         Int?
+  chapterbook   Chapter? @relation(fields: [chapterbookId], references: [id])
+  chapterbookId String?
+  books         Books?   @relation(fields: [booksId], references: [id])
+  booksId       String?
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
