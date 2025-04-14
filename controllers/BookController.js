@@ -100,83 +100,64 @@ export const updataBook = async (req, res) => {
     book_pdf_try,
   } = req.body;
 
-  const imagecover = req.file ? req.file.filename : null;
+  const imagecover = req.file;
   try {
     if (imagecover) {
-      const curFile = await DataBooks.findById(bookId);
+      const curFile = await prisma.books.findFirst({
+        where: {
+          id: bookId,
+        },
+      });
       if (imagecover !== "") {
-        const fileimage = curFile.public_id;
+        const fileimage = curFile.coverImage;
         if (fileimage) {
-          await cloudinary.uploader.destroy(fileimage);
-          console.log(fileimage);
+          const i = uploadParams(ImageProfile, "profile");
+          const save = new PutObjectCommand(i);
+          await clients3.send(save);
+          const url = `https://service-bb.overletworld.online/${i.Key}`;
+          await prisma.books.update({
+            where: { id: bookId },
+            data: {
+              title: titlebook,
+              t_name: tname,
+              a_name: aname,
+              tagline: tagline,
+              synopsis: synopsis,
+              price_of_free: typeprice,
+              free: freeBook,
+              rating: rating,
+              category_main: categoryone,
+              category: categorywto,
+              typebook: tybook,
+              typebook_singer_a_muti: typebook,
+              shopId: shopid,
+              typebookAndnovel: typebookAndnovel,
+              coverImage: url,
+            },
+          });
+          res.status(200).json("Updata Successfully ");
         }
       }
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        public_id: imagecover,
-        resource_type: "auto",
-        folder: "avatar",
+      await prisma.books.update({
+        where: { id: bookId },
+        data: {
+          title: titlebook,
+          t_name: tname,
+          a_name: aname,
+          tagline: tagline,
+          synopsis: synopsis,
+          price_of_free: typeprice,
+          free: freeBook,
+          rating: rating,
+          category_main: categoryone,
+          category: categorywto,
+          typebook: tybook,
+          typebook_singer_a_muti: typebook,
+          shopId: shopid,
+          typebookAndnovel: typebookAndnovel,
+        },
       });
-      const Data = await DataBooks.findByIdAndUpdate(
-        bookId,
-        {
-          $set: {
-            title: titlebook,
-            t_name: tname,
-            a_name: aname,
-            tagline: tagline,
-            synopsis: synopsis,
-            price_of_free: typeprice,
-            free: freeBook,
-            cover_image: {
-              public_id: result.public_id,
-              cover_image_url: result.secure_url,
-              cover_name: imagecover,
-            },
-            rating: rating,
-            category_main: categoryone,
-            category: categorywto,
-            typebook: tybook,
-            typebook_singer_a_muti: typebook,
-            typebookAndnovel: typebookAndnovel,
-            book_pdf: {
-              book_pdf_full: book_pdf_full,
-              book_pdf_try: book_pdf_try,
-            },
-          },
-        },
-        { new: true }
-      ).populate("mangauser");
       res.status(200).json("Updata Successfully ");
-      console.log(Data);
-    }
-    if (!imagecover) {
-      const Data = await DataBooks.findByIdAndUpdate(
-        bookId,
-        {
-          $set: {
-            title: titlebook,
-            t_name: tname,
-            a_name: aname,
-            tagline: tagline,
-            synopsis: synopsis,
-            price_of_free: typeprice,
-            free: freeBook,
-            rating: rating,
-            category_main: categoryone,
-            category: categorywto,
-            typebook: tybook,
-            typebook_singer_a_muti: typebook,
-            typebookAndnovel: typebookAndnovel,
-            book_pdf: {
-              book_pdf_full: book_pdf_full,
-              book_pdf_try: book_pdf_try,
-            },
-          },
-        },
-        { new: true }
-      );
-      res.status(200).json("Updata Successfully ");
-      console.log(Data);
     }
   } catch (err) {
     console.log(err);

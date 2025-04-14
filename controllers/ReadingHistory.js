@@ -35,6 +35,26 @@ export const CommentBookHistory = async (req, res) => {
     console.log(err);
   }
 };
+
+export const CommentBookRespond = async (req, res) => {
+  const { textcomment } = req.body;
+  const { userid, bookid, reviewid } = req.params;
+
+  try {
+    await prisma.reviewrespond.create({
+      data: {
+        textreview: textcomment,
+        booksId: bookid,
+        userId: userid,
+        reviewId: reviewid,
+      },
+    });
+    res.status(200).json({ message: "comment successfully !" });
+  } catch (err) {
+    res.status(404).json("Not Falie");
+    console.log(err);
+  }
+};
 export const getCommentBook = async (req, res) => {
   const bookID = req.params.bookid;
   try {
@@ -47,6 +67,21 @@ export const getCommentBook = async (req, res) => {
             fullname: true,
             namedisplay: true,
             avatar: true,
+          },
+        },
+        responses: {
+          select: {
+            textreview: true,
+            views: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                fullname: true,
+                namedisplay: true,
+                avatar: true,
+              },
+            },
           },
         },
       },

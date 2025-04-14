@@ -9,55 +9,57 @@ datasource db {
 
 model User {
   // id          String  @id @default(auto()) @map("_id")
-  id          String       @id @default(uuid())
-  email       String       @unique
-  fullname    String
-  namedisplay String?
-  username    String
-  password    String       @map("password") // Prisma ไม่รองรับ select:false แต่คุณสามารถใช้ DTO ซ่อน password ใน API ได้
-  credit      Int          @default(0)
-  total_money Int          @default(0)
-  avatar      String       @default("")
-  sex         String?
-  isAdmin     String       @default("user_role")
-  Book        Books[]      @relation("BookList")
-  Address     Address[]
-  followShop  FollowShop[]
-  watchlist   Watchlist[]
-  favorite    Favorite[]
-  cart        Cart[]
-  Review      Review[]
+  id            String          @id @default(uuid())
+  email         String          @unique
+  fullname      String
+  namedisplay   String?
+  username      String
+  password      String          @map("password") // Prisma ไม่รองรับ select:false แต่คุณสามารถใช้ DTO ซ่อน password ใน API ได้
+  credit        Int             @default(0)
+  total_money   Int             @default(0)
+  avatar        String          @default("")
+  sex           String?
+  isAdmin       String          @default("user_role")
+  Book          Books[]         @relation("BookList")
+  Address       Address[]
+  followShop    FollowShop[]
+  watchlist     Watchlist[]
+  favorite      Favorite[]
+  cart          Cart[]
+  Review        Review[]
+  Reviewrespond Reviewrespond[]
 }
 
 model Books {
-  id                     String      @id @default(uuid())
+  id                     String          @id @default(uuid())
   title                  String?
   a_name                 String?
   t_name                 String?
   tagline                String?
   synopsis               String?
-  coverImageId           String?     @unique
-  price_of_free          String      @default("0")
-  free                   String      @default("ฟรี")
+  coverImageId           String?         @unique
+  price_of_free          String          @default("0")
+  free                   String          @default("ฟรี")
   category_main          String?
   category               String?
   rating                 String?
   typebook               String?
   typebook_singer_a_muti String?
   typebookAndnovel       String?
-  bookPdfId              String?     @unique
+  bookPdfId              String?         @unique
   bookPdf                BookPDF?
-  Chapter                Chapter[]   @relation("ChapterBook")
+  Chapter                Chapter[]       @relation("ChapterBook")
   shopId                 String
   mangauserId            String
-  User                   User?       @relation(fields: [mangauserId], references: [id], name: "BookList")
-  createdAt              DateTime    @default(now())
-  updatedAt              DateTime    @updatedAt
+  User                   User?           @relation(fields: [mangauserId], references: [id], name: "BookList")
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
   coverImage             String?
   watchlist              Watchlist[]
   favorite               Favorite[]
   cartItem               CartItem[]
   Review                 Review[]
+  Reviewrespond          Reviewrespond[]
 }
 
 model BookPDF {
@@ -84,15 +86,16 @@ model BookCategory {
 }
 
 model Chapter {
-  id         String   @id @default(uuid())
-  title_name String?
-  contents   String?
-  bookId     String
-  images     Image[]  @relation("ChapterImages")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  books      Books?   @relation(fields: [bookId], references: [id], name: "ChapterBook")
-  Review     Review[]
+  id            String          @id @default(uuid())
+  title_name    String?
+  contents      String?
+  bookId        String
+  images        Image[]         @relation("ChapterImages")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  books         Books?          @relation(fields: [bookId], references: [id], name: "ChapterBook")
+  Review        Review[]
+  Reviewrespond Reviewrespond[]
 }
 
 model Image {
@@ -199,6 +202,24 @@ model Review {
   booksId       String?
   user          User     @relation(fields: [userId], references: [id])
   userId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  responses Reviewrespond[] @relation("ReviewToResponses")
+}
+
+model Reviewrespond {
+  id            String   @id @default(uuid())
+  textreview    String?
+  views         Int?
+  chapterbook   Chapter? @relation(fields: [chapterbookId], references: [id])
+  chapterbookId String?
+  books         Books?   @relation(fields: [booksId], references: [id])
+  booksId       String?
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  review        Review   @relation("ReviewToResponses", fields: [reviewId], references: [id])
+  reviewId      String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
