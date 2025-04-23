@@ -65,7 +65,7 @@ export const login = async (req, res, next) => {
     );
     sendToken(token, user, 200, res);
   } catch (err) {
-    res.status(404).json({ message: "Login not Failed !!" });
+    res.status(500).json({ message: "Login not Failed !!" });
     console.log(err);
   }
 };
@@ -172,35 +172,29 @@ export const UserDelete = async (req, res) => {
 export const loginLine = async (req, res, next) => {
   try {
     const { userId, displayName, pictureUrl } = req.body;
-    var data = {
-      fullname: displayName,
-      username: userId,
-      avatar: {
-        avatar_url: pictureUrl,
-      },
-    };
-    var user = await User.findOneAndUpdate({ username: userId }, { new: true });
+    var user = await prisma.user.findFirst({
+      where: { username: userId },
+    });
     if (user) {
       console.log("user updata");
     } else {
-      user = new User(data);
-      await user.save();
-      console.log("new user ");
+      user = await prisma.user.create({
+        data: {
+          fullname: displayName,
+          username: userId,
+          avatar: pictureUrl,
+          email: userId,
+          password: userId,
+        },
+      });
     }
     const token = jwt.sign(
-      { id: user._id, isAdmin: user.isAdmin },
+      { id: user.id, isAdmin: user.isAdmin },
       process.env.JWT
     );
-    const { password, isAdmin, ...otherDetails } = user._doc;
-    res
-      .cookie("access_token", token, {
-        httpOnly: true,
-      })
-      .status(200)
-      .json({ details: { ...otherDetails }, isAdmin });
-    next("Login Successfully!");
+    sendToken(token, user, 200, res);
   } catch (err) {
-    next(err);
+    res.status(500).json({ message: "Login not Failed !!" });
     console.log(err);
   }
 };
@@ -260,7 +254,7 @@ export const getUser = async (req, res, next) => {
     });
   } catch (error) {
     console.log(error);
-    return next(new ErrorHandler(error.message, 500));
+    return res.status(500).json({ message: error.message });
   }
 };
 

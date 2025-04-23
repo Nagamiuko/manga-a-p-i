@@ -28,19 +28,6 @@ export const createBook = async (req, res) => {
 
   const imagecover = req.file;
   try {
-    // const reCheck = await prisma.book.findFirst({
-    //   where: {
-    //     mangauserId: userId,
-    //   },
-    // });
-    // if (reCheck == null)
-    //   return res.status(401).json({ message: "This Book not found !!" });
-    // if (reCheck.cover_image_url) {
-    //   const oldImageKey = reCheck.cover_image_url.split("/").pop();
-    //   const Deletes = deleteParams(oldImageKey, "profile");
-    //   const command = new DeleteObjectCommand(Deletes);
-    //   await clients3.send(command);
-    // }
     const i = uploadParams(imagecover, "upload_cover");
     const save = new PutObjectCommand(i);
     await clients3.send(save);
@@ -108,7 +95,7 @@ export const updataBook = async (req, res) => {
           id: bookId,
         },
       });
-      if (imagecover !== "") {
+      if (imagecover !== null) {
         const fileimage = curFile.coverImage;
         if (fileimage) {
           const i = uploadParams(ImageProfile, "profile");
@@ -130,7 +117,6 @@ export const updataBook = async (req, res) => {
               category: categorywto,
               typebook: tybook,
               typebook_singer_a_muti: typebook,
-              shopId: shopid,
               typebookAndnovel: typebookAndnovel,
               coverImage: url,
             },
@@ -138,27 +124,26 @@ export const updataBook = async (req, res) => {
           res.status(200).json("Updata Successfully ");
         }
       }
-      await prisma.books.update({
-        where: { id: bookId },
-        data: {
-          title: titlebook,
-          t_name: tname,
-          a_name: aname,
-          tagline: tagline,
-          synopsis: synopsis,
-          price_of_free: typeprice,
-          free: freeBook,
-          rating: rating,
-          category_main: categoryone,
-          category: categorywto,
-          typebook: tybook,
-          typebook_singer_a_muti: typebook,
-          shopId: shopid,
-          typebookAndnovel: typebookAndnovel,
-        },
-      });
-      res.status(200).json("Updata Successfully ");
     }
+    await prisma.books.update({
+      where: { id: bookId },
+      data: {
+        title: titlebook,
+        t_name: tname,
+        a_name: aname,
+        tagline: tagline,
+        synopsis: synopsis,
+        price_of_free: typeprice,
+        free: freeBook,
+        rating: rating,
+        category_main: categoryone,
+        category: categorywto,
+        typebook: tybook,
+        typebook_singer_a_muti: typebook,
+        typebookAndnovel: typebookAndnovel,
+      },
+    });
+    res.status(200).json("Updata Successfully ");
   } catch (err) {
     console.log(err);
     res.status(404).json(err);

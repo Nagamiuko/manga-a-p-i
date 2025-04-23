@@ -1,10 +1,18 @@
 import Order from "../models/Order.js";
 import NodeMail from "nodemailer";
 import User from "../models/UserModels.js";
+import { prisma } from "../plugins/prismaClient.js";
 
 export const createOrderProduct = async (req, res, next) => {
-  const { cart, shippingAddress, user, totalPrice, status, paymentInfo ,informationPayment} =
-    req.body;
+  const {
+    cart,
+    shippingAddress,
+    user,
+    totalPrice,
+    status,
+    paymentInfo,
+    informationPayment,
+  } = req.body;
   try {
     const transporter = NodeMail.createTransport({
       service: "gmail",
@@ -25,20 +33,20 @@ export const createOrderProduct = async (req, res, next) => {
     //   console.log(meil);
     // }
     const orders = [];
-      const order = await Order.create({
-        cart,
-        shippingAddress,
-        user,
-        totalPrice,
-        paymentInfo,
-        status,
-      });
-      orders.push(order);
-      let mailUser = {
-        from: '"CommicBook Novels" <puttisan.7353@gmail.com>',
-        to: `${informationPayment.email}`,
-        subject: `สวัดดีคุณ ${informationPayment.name} ยืนยันคำสั่งซื้อหมายเลข ${order._id} แพลตฟอร์มของเราโปรดตรวจสอบ`,
-        html: `
+    const order = await Order.create({
+      cart,
+      shippingAddress,
+      user,
+      totalPrice,
+      paymentInfo,
+      status,
+    });
+    orders.push(order);
+    let mailUser = {
+      from: '"CommicBook Novels" <puttisan.7353@gmail.com>',
+      to: `${informationPayment.email}`,
+      subject: `สวัดดีคุณ ${informationPayment.name} ยืนยันคำสั่งซื้อหมายเลข ${order._id} แพลตฟอร์มของเราโปรดตรวจสอบ`,
+      html: `
         <!DOCTYPE html>
       <html lang="en">
         <head>
@@ -116,12 +124,12 @@ export const createOrderProduct = async (req, res, next) => {
         </body>
       </html>      
       `,
-      };
-      let mailOrder = {
-        from: '"CommicBook Novels" <puttisan.7353@gmail.com>',
-        to: `${cart.mangauser.email}`,
-        subject: `สวัดดีคุณ ${cart.mangauser.fullname} มีรายการคำสั่งชื้อผ่านแพลตฟอร์มของเราโปรดตรวจสอบ`,
-        html: `
+    };
+    let mailOrder = {
+      from: '"CommicBook Novels" <puttisan.7353@gmail.com>',
+      to: `${cart.mangauser.email}`,
+      subject: `สวัดดีคุณ ${cart.mangauser.fullname} มีรายการคำสั่งชื้อผ่านแพลตฟอร์มของเราโปรดตรวจสอบ`,
+      html: `
         <b>มีรายการสั่งชื้อจากคุณ ${user.fullname} มีรายการที่สั่งชื้อดังนี้ </b><br/>
         <!DOCTYPE html>
       <html lang="en">
@@ -198,19 +206,19 @@ export const createOrderProduct = async (req, res, next) => {
         </body>
       </html>      
         `,
-      };
-      transporter.sendMail(mailOrder, function (err, info) {
-        if (err) console.log(err);
-        else console.log(info);
-      });
-      transporter.sendMail(mailUser, function (err, info) {
-        if (err) console.log(err);
-        else console.log(info);
-      });
-      res.status(201).json({
-        success: true,
-        orders,
-      });
+    };
+    transporter.sendMail(mailOrder, function (err, info) {
+      if (err) console.log(err);
+      else console.log(info);
+    });
+    transporter.sendMail(mailUser, function (err, info) {
+      if (err) console.log(err);
+      else console.log(info);
+    });
+    res.status(201).json({
+      success: true,
+      orders,
+    });
   } catch (err) {
     next(err.message, 500);
     console.log(err);
@@ -225,6 +233,7 @@ export const getOrderUser = async (req, res, next) => {
     console.log(err);
   }
 };
+
 export const getOrderShop = async (req, res, next) => {
   const shopID = req.params.shopid;
   try {
@@ -260,5 +269,95 @@ export const getReceiptId = async (req, res, next) => {
     res.status(200).json({ success: true, receiptDetail });
   } catch (err) {
     console.log(err);
+  }
+};
+
+export const getCartItem = async (req, res, next) => {
+  const { userid } = req.params;
+  try {
+    const item = await prisma.cart.findFirst({
+      where: {
+        userId: userid,
+      },
+      select: {
+        id: true,
+        user: {
+          select: {
+            namedisplay: true,
+            fullname: true,
+            id: true,
+          },
+        },
+        items: {
+          select: {
+            cartId: true,
+            quantity: true,
+            product: {
+              select: {
+                id: true,
+                price_of_free: true,
+                title: true,
+                a_name: true,
+                t_name: true,
+                typebook: true,
+                typebookAndnovel: true,
+                coverImage: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    res
+      .status(200)
+      .json({ message: "read full item successfully.", data: item });
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({ message: "read item failed !!!" });
+  }
+};
+
+export const createCartItem = async (req, res, next) => {
+  const { bookid, userid } = req.params;
+  const { qty } = req.body;
+
+  try {
+    let cart = await prisma.cart.findFirst({
+      where: { userId: userid },
+    });
+
+    if (!cart) {
+      cart = await prisma.cart.create({
+        data: {
+          userId: userid,
+        },
+      });
+    }
+    const existingItem = await prisma.cartItem.findFirst({
+      where: {
+        cartId: cart.id,
+        productId: bookid,
+      },
+    });
+    if (existingItem) {
+      await prisma.cartItem.update({
+        where: { id: existingItem.id },
+        data: {
+          quantity: existingItem.quantity + (qty || 0),
+        },
+      });
+    } else {
+      await prisma.cartItem.create({
+        data: {
+          cartId: cart.id,
+          productId: bookid,
+          quantity: qty || 0,
+        },
+      });
+    }
+    res.status(200).json({ message: "Add item successfully." });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ message: "Add item failed !!!" });
   }
 };
